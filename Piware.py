@@ -1,3 +1,5 @@
+# This code is in PYTHON2 and runs on the RPi
+
 import cv2
 import socket
 import threading
@@ -11,7 +13,7 @@ conn, addr = s.accept()
 
 # Open Webcam
 cap = cv2.VideoCapture(0)  # 1 signifies the second available camera device
-fourcc = cv2.VideoWriter_fourcc(*"XVID")  # The protocol used for video
+fourcc = cv2.cv.FOURCC(*"XVID")  # The protocol used for video
 
 camon = True
 while camon:
@@ -20,7 +22,7 @@ while camon:
     # If the frame was captured correctly
     if ret:
         # print(frame.dtype, frame.shape)
-        conn.send(frame.flatten().tobytes())
+        conn.send(bytearray(frame.flatten()))
         cv2.imshow("frame", frame)
         cv2.waitKey(1)
 

@@ -7,13 +7,14 @@ import pygame
 from pygame.locals import *
 from time import time
 
-addr = ("127.0.0.1", 9001)
+piaddr = ("169.254.198.75", 9001)
 framelock = threading.Lock()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(addr)
+s.connect(piaddr)
 
 frame = np.zeros((480, 640, 3), dtype=np.uint8)
+fourcc = cv2.VideoWriter_fourcc(*"XVID")  # The protocol used for video
 
 def receiving():
     rawdata = bytes()
