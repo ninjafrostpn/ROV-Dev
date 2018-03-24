@@ -1,3 +1,5 @@
+# This code is in PYTHON3 and runs on the surface-side interface
+
 import threading
 import socket
 import os
