@@ -10,7 +10,6 @@ from pygame.locals import *
 from time import time
 
 piaddr = ("169.254.198.75", 9001)
-framelock = threading.Lock()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(piaddr)
