@@ -9,27 +9,44 @@ import pygame
 from pygame.locals import *
 from time import time
 
+# The IP and socket number used for comms with teh Pi
 piaddr = ("169.254.198.75", 9001)
 
+# The socket used for comms with teh Pi
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(piaddr)
 
+# Initialise the video feed as a blank, black screen
 frame = np.zeros((480, 640, 3), dtype=np.uint8)
-fourcc = cv2.VideoWriter_fourcc(*"XVID")  # The protocol used for video
 
+# The protocol used for video
+fourcc = cv2.VideoWriter_fourcc(*"XVID")
+
+# Function used by the receiver thread to receive image data sent by the Pi
 def receiving():
     rawdata = bytes()
     while True:
-        rawdata += s.recv(921600)
+        # Receive as many bytes as required to get a whole image
+        rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B)
+        # If enough has been collected to possibly represent a whole image
         if len(rawdata) >= 921600:
+            # Remove one image's worth of data from the beginning of that received
             rawdata, framedata = rawdata[921600:], rawdata[:921600]
+            # Update the on-screen video feed with the data received
+            # (After translating it into an image from the bytes)
             frame[:] = np.frombuffer(framedata, dtype=np.uint8).reshape(480, 640, 3)
 
+# Start the receiver thread
 receiver = threading.Thread(target=receiving)
 receiver.start()
 
-path = r"D:\Users\Charles Turvey\Documents\Python\Projects\SavedImages\{:.0f}".format(time())
-os.mkdir(path)
+# Creates a folder for saved videos and images to go into in the current working directory
+path = os.getcwd() + r"\ROV-Captures"
+try:
+    os.mkdir(path)
+except FileExistsError:
+    pass
+os.mkdir(path + "\{:.0f}".format(time()))
 
 # Define some colours
 white = (255, 255, 255)
@@ -119,13 +136,13 @@ while camon:
             # If enter is pressed, take a photo
             if e.key == K_RETURN:
                 photocount += 1
-                cv2.imwrite("{}/{:.0f}.png".format(path, time()), frame)
+                cv2.imwrite("IMG{}/{:.0f}.png".format(path, time()), frame)
                 phototime = time()
             # If r is pressed, start or stop recording
             if e.key == K_r:
                 if not recording:
                     recordcount += 1
-                    out = cv2.VideoWriter("{}/{:.0f}.avi".format(path, time()), fourcc, 20, (640, 480))
+                    out = cv2.VideoWriter("VID{}/{:.0f}.avi".format(path, time()), fourcc, 20, (640, 480))
                     recordstarttime = time()
                 else:
                     out.release()
