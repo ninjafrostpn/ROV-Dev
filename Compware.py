@@ -79,7 +79,7 @@ w = screen.get_width()
 h = screen.get_height()
 
 # Load up a nice font
-smallfont = pygame.font.Font(r"D:\Users\Charles Turvey\Documents\Python\Projects\OpenSans-Regular.ttf", 30)
+smallfont = pygame.font.Font(None, 30)
 
 # Initialise variables which indicate state
 recording = False  # "The camera is recording video"
