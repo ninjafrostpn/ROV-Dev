@@ -11,10 +11,17 @@ from time import time
 
 # The IP and socket number used for comms with teh Pi
 piaddr = ("169.254.198.75", 9001)
+piaddr2 = ("192.168.1.97", 9001)
 
 # The socket used for comms with teh Pi
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(piaddr)
+connected = False
+while not connected:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(piaddr)
+        connected = True
+    except ConnectionRefusedError:
+        pass
 
 # Initialise the video feed as a blank, black screen
 frame = np.zeros((480, 640, 3), dtype=np.uint8)
