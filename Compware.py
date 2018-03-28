@@ -12,8 +12,14 @@ from time import time
 debug = True
 
 
+# Debug-log printer
+def qrint(*args, **kwargs):
+    print("-- {:} --".format(time()), *args, **kwargs)
+
+
+# Function run
 def onquit():
-    print("Shutting down...")
+    qrint("Shutting down...")
     # Allow things to be gotten rid of, as necessary
     if recording:
         out.release()
@@ -34,11 +40,11 @@ def HMS(val):
 def receiving():
     rawdata = bytes()
     if debug:
-        print("Starting camera")
+        qrint("Starting camera")
         while True:
             ret, frame[:] = cap.read()
             if ret:
-                # print(frame.dtype, frame.shape)
+                # qrint(frame.dtype, frame.shape)
                 cv2.imshow("frame", frame)
                 cv2.waitKey(1)
     else:
@@ -66,7 +72,7 @@ if not debug:
     
     # The socket used for comms with teh Pi
     connected = False
-    print("Connecting...")
+    qrint("Connecting...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     while not connected:
         try:
@@ -74,9 +80,9 @@ if not debug:
             connected = True
         except ConnectionRefusedError:
             pass
-    print("Connected to {}".format(s.getpeername()))
+    qrint("Connected to {}".format(s.getpeername()))
 else:
-    print("##DEBUG MODE##")
+    qrint("##DEBUG MODE##")
     cap = cv2.VideoCapture(0)  # 0 signifies the first available camera device
 
 # Start the receiver thread
@@ -88,12 +94,12 @@ receiver.start()
 path = os.getcwd() + r"\ROV-Captures"
 try:
     os.mkdir(path)
-    print("Created ROV-captures folder")
+    qrint("Created ROV-captures folder")
 except FileExistsError:
-    print("ROV-Captures folder already exists")
-path += r"\{:.0f}".format(time())
+    qrint("ROV-Captures folder already exists")
+path += r"\DIVE{:.0f}".format(time())
 os.mkdir(path)
-print("Created folder for this session", "Captures will be saved to:", path, sep="\n")
+qrint("Created folder for this session", "Captures will be saved to:", path, sep="\n")
 
 # Define some colours
 white = (255, 255, 255)
@@ -118,22 +124,24 @@ camon = True  # "The camera is to stay on for the next cycle"
 
 # Initialise stats
 starttime = time()
+vidname = "VIDEO"
 recordstarttime = -1
 recordfinishtime = -1
 recordcount = 0
 totalrecordtime = 0
+photoname = "PHOTO"
 phototime = -1
 photocount = 0
 
 # Main draw loop
-print("Start video feed")
+qrint("Display video feed")
 while True:
     # Converts from opencv image capture to pygame Surface
     pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pframe = np.rot90(np.fliplr(pframe))
-    # print(pframe.shape)
+    # qrint(pframe.shape)
     pframe = pygame.surfarray.make_surface(pframe)
-    # print(pframe.get_size())
+    # qrint(pframe.get_size())
     
     # Draw everything
     screen.fill(black)
@@ -174,19 +182,21 @@ while True:
         elif e.type == KEYDOWN:
             # If enter is pressed, take a photo
             if e.key == K_RETURN:
-                print("SNAP! (Took a photo)")
+                photoname = path + r"\IMG{:.0f}.png".format(time())
+                qrint("Took photo #{}, saved to:\n" + photoname)
                 photocount += 1
-                cv2.imwrite(path + r"\IMG{:.0f}.png".format(time()), frame)
+                cv2.imwrite(photoname, frame)
                 phototime = time()
             # If r is pressed, start or stop recording
             if e.key == K_r:
                 if not recording:
-                    print("Recording... START!")
                     recordcount += 1
-                    out = cv2.VideoWriter(path + r"\VID{:.0f}.avi".format(time()), fourcc, 20, (640, 480))
+                    vidname = path + r"\VID{:.0f}.avi".format(time())
+                    out = cv2.VideoWriter(vidname, fourcc, 20, (640, 480))
                     recordstarttime = time()
+                    qrint("Recording #{} to:\n".format(recordcount) + vidname)
                 else:
-                    print("Recording... END!")
+                    qrint("Recording #{} ended, saved to:\n".format(recordcount) + vidname)
                     out.release()
                     totalrecordtime += recordfinishtime - recordstarttime
                 recording = not recording
