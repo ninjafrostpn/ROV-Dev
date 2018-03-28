@@ -17,6 +17,8 @@ def onquit():
     # Allow things to be gotten rid of, as necessary
     if recording:
         out.release()
+    if debug:
+        cap.release()
     quit()
 
 
@@ -33,7 +35,6 @@ def receiving():
     rawdata = bytes()
     if debug:
         print("Starting camera")
-        cap = cv2.VideoCapture(0)  # 0 signifies the first available camera device
         while True:
             ret, frame[:] = cap.read()
             if ret:
@@ -43,7 +44,7 @@ def receiving():
     else:
         while True:
             # Receive as many bytes as required to get a whole image
-            rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B)
+            rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B))
             # If enough has been collected to possibly represent a whole image
             if len(rawdata) >= 921600:
                 # Remove one image's worth of data from the beginning of that received
@@ -76,6 +77,7 @@ if not debug:
     print("Connected to {}".format(s.getpeername()))
 else:
     print("##DEBUG MODE##")
+    cap = cv2.VideoCapture(0)  # 0 signifies the first available camera device
 
 # Start the receiver thread
 # This is daemonic, so that it finishes when the main thread does and doesn't stop the program closing
@@ -89,7 +91,9 @@ try:
     print("Created ROV-captures folder")
 except FileExistsError:
     print("ROV-Captures folder already exists")
-os.mkdir(path + "\{:.0f}".format(time()))
+path += r"\{:.0f}".format(time())
+os.mkdir(path)
+print("Created folder for this session", "Captures will be saved to:", path, sep="\n")
 
 # Define some colours
 white = (255, 255, 255)
@@ -122,6 +126,7 @@ phototime = -1
 photocount = 0
 
 # Main draw loop
+print("Start video feed")
 while True:
     # Converts from opencv image capture to pygame Surface
     pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -169,16 +174,19 @@ while True:
         elif e.type == KEYDOWN:
             # If enter is pressed, take a photo
             if e.key == K_RETURN:
+                print("SNAP! (Took a photo)")
                 photocount += 1
-                cv2.imwrite("IMG{}/{:.0f}.png".format(path, time()), frame)
+                cv2.imwrite(path + r"\IMG{:.0f}.png".format(time()), frame)
                 phototime = time()
             # If r is pressed, start or stop recording
             if e.key == K_r:
                 if not recording:
+                    print("Recording... START!")
                     recordcount += 1
-                    out = cv2.VideoWriter("VID{}/{:.0f}.avi".format(path, time()), fourcc, 20, (640, 480))
+                    out = cv2.VideoWriter(path + r"\VID{:.0f}.avi".format(time()), fourcc, 20, (640, 480))
                     recordstarttime = time()
                 else:
+                    print("Recording... END!")
                     out.release()
                     totalrecordtime += recordfinishtime - recordstarttime
                 recording = not recording
