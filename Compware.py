@@ -9,6 +9,36 @@ import pygame
 from pygame.locals import *
 from time import time
 
+def onquit():
+    # Allow things to be gotten rid of, as necessary
+    if recording:
+        out.release()
+    quit()
+
+
+# Function for outputting seconds as hoursminutesseconds
+def HMS(val):
+    s = val % 60
+    m = (val - s) % 3600
+    h = (val - (m + s))
+    return "{:n}h{:n}m{:.2f}s".format(h / 3600, m / 60, s)
+
+
+# Function used by the receiver thread to receive image data sent by the Pi
+def receiving():
+    rawdata = bytes()
+    while True:
+        # Receive as many bytes as required to get a whole image
+        rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B)
+        # If enough has been collected to possibly represent a whole image
+        if len(rawdata) >= 921600:
+            # Remove one image's worth of data from the beginning of that received
+            rawdata, framedata = rawdata[921600:], rawdata[:921600]
+            # Update the on-screen video feed with the data received
+            # (After translating it into an image from the bytes)
+            frame[:] = np.frombuffer(framedata, dtype=np.uint8).reshape(480, 640, 3)
+
+
 # The IP and socket number used for comms with teh Pi
 piaddr = ("169.254.198.75", 9001)
 piaddr2 = ("192.168.1.97", 9001)
@@ -29,22 +59,9 @@ frame = np.zeros((480, 640, 3), dtype=np.uint8)
 # The protocol used for video
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 
-# Function used by the receiver thread to receive image data sent by the Pi
-def receiving():
-    rawdata = bytes()
-    while True:
-        # Receive as many bytes as required to get a whole image
-        rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B)
-        # If enough has been collected to possibly represent a whole image
-        if len(rawdata) >= 921600:
-            # Remove one image's worth of data from the beginning of that received
-            rawdata, framedata = rawdata[921600:], rawdata[:921600]
-            # Update the on-screen video feed with the data received
-            # (After translating it into an image from the bytes)
-            frame[:] = np.frombuffer(framedata, dtype=np.uint8).reshape(480, 640, 3)
-
 # Start the receiver thread
-receiver = threading.Thread(target=receiving)
+# This is daemonic, so that it finishes when the main thread does and doesn't stop the program closing
+receiver = threading.Thread(target=receiving, daemon=True)
 receiver.start()
 
 # Creates a folder for saved videos and images to go into in the current working directory
@@ -53,7 +70,7 @@ try:
     os.mkdir(path)
 except FileExistsError:
     pass
-os.mkdir(path + "\{:.0f}".format(time()))
+print(os.mkdir(path + "\{:.0f}".format(time())))
 
 # Define some colours
 white = (255, 255, 255)
@@ -61,15 +78,6 @@ black = 0
 red = (255, 0, 0)
 green = (0, 255, 0)
 blue = (50, 0, 255)
-
-
-# Function for outputting seconds as hoursminutesseconds
-def HMS(val):
-    s = val % 60
-    m = (val - s) % 3600
-    h = (val - (m + s))
-    return "{:n}h{:n}m{:.2f}s".format(h / 3600, m / 60, s)
-
 
 # Set up the pygame window
 pygame.init()
@@ -95,7 +103,7 @@ phototime = -1
 photocount = 0
 
 # Main draw loop
-while camon:
+while True:
     # Converts from opencv image capture to pygame Surface
     pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pframe = np.rot90(np.fliplr(pframe))
@@ -138,7 +146,7 @@ while camon:
     for e in pygame.event.get():
         # If window's x is pressed, prepare to leave
         if e.type == QUIT:
-            camon = False
+            onquit()
         elif e.type == KEYDOWN:
             # If enter is pressed, take a photo
             if e.key == K_RETURN:
@@ -157,8 +165,4 @@ while camon:
                 recording = not recording
             # If escape is pressed... as with the red x
             if e.key == K_ESCAPE:
-                camon = False
-
-# Allow things to be gotten rid of, as necessary
-if recording:
-    out.release()
+                onquit()
