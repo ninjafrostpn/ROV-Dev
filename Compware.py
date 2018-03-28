@@ -9,7 +9,11 @@ import pygame
 from pygame.locals import *
 from time import time
 
+debug = True
+
+
 def onquit():
+    print("Shutting down...")
     # Allow things to be gotten rid of, as necessary
     if recording:
         out.release()
@@ -27,37 +31,51 @@ def HMS(val):
 # Function used by the receiver thread to receive image data sent by the Pi
 def receiving():
     rawdata = bytes()
-    while True:
-        # Receive as many bytes as required to get a whole image
-        rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B)
-        # If enough has been collected to possibly represent a whole image
-        if len(rawdata) >= 921600:
-            # Remove one image's worth of data from the beginning of that received
-            rawdata, framedata = rawdata[921600:], rawdata[:921600]
-            # Update the on-screen video feed with the data received
-            # (After translating it into an image from the bytes)
-            frame[:] = np.frombuffer(framedata, dtype=np.uint8).reshape(480, 640, 3)
-
-
-# The IP and socket number used for comms with teh Pi
-piaddr = ("169.254.198.75", 9001)
-piaddr2 = ("192.168.1.97", 9001)
-
-# The socket used for comms with teh Pi
-connected = False
-while not connected:
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(piaddr)
-        connected = True
-    except ConnectionRefusedError:
-        pass
+    if debug:
+        print("Starting camera")
+        cap = cv2.VideoCapture(0)  # 0 signifies the first available camera device
+        while True:
+            ret, frame[:] = cap.read()
+            if ret:
+                # print(frame.dtype, frame.shape)
+                cv2.imshow("frame", frame)
+                cv2.waitKey(1)
+    else:
+        while True:
+            # Receive as many bytes as required to get a whole image
+            rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B)
+            # If enough has been collected to possibly represent a whole image
+            if len(rawdata) >= 921600:
+                # Remove one image's worth of data from the beginning of that received
+                rawdata, framedata = rawdata[921600:], rawdata[:921600]
+                # Update the on-screen video feed with the data received
+                # (After translating it into an image from the bytes)
+                frame[:] = np.frombuffer(framedata, dtype=np.uint8).reshape(480, 640, 3)
 
 # Initialise the video feed as a blank, black screen
 frame = np.zeros((480, 640, 3), dtype=np.uint8)
 
 # The protocol used for video
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
+
+if not debug:
+    # The IP and socket number used for comms with teh Pi
+    piaddr = ("169.254.198.75", 9001)
+    piaddr2 = ("192.168.1.97", 9001)
+    
+    # The socket used for comms with teh Pi
+    connected = False
+    print("Connecting...")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while not connected:
+        try:
+            s.connect(piaddr)
+            connected = True
+        except ConnectionRefusedError:
+            pass
+    print("Connected to {}".format(s.getpeername()))
+else:
+    print("##DEBUG MODE##")
 
 # Start the receiver thread
 # This is daemonic, so that it finishes when the main thread does and doesn't stop the program closing
@@ -68,9 +86,10 @@ receiver.start()
 path = os.getcwd() + r"\ROV-Captures"
 try:
     os.mkdir(path)
+    print("Created ROV-captures folder")
 except FileExistsError:
-    pass
-print(os.mkdir(path + "\{:.0f}".format(time())))
+    print("ROV-Captures folder already exists")
+os.mkdir(path + "\{:.0f}".format(time()))
 
 # Define some colours
 white = (255, 255, 255)
