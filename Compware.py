@@ -17,7 +17,7 @@ def qrint(*args, **kwargs):
     print("-- {:} --".format(time()), *args, **kwargs)
 
 
-# Function run
+# Function run on quitting the script
 def onquit():
     qrint("Shutting down...")
     # Allow things to be gotten rid of, as necessary
