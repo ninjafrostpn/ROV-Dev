@@ -10,11 +10,13 @@ from pygame.locals import *
 from time import time
 
 debug = True
+starttime = time()
 
 
 # Debug-log printer
 def qrint(*args, **kwargs):
-    print("-- {:} --".format(time()), *args, **kwargs)
+    print("-- {:} ({:.03f}s) --".format(time(), time() - starttime))
+    print(*args, **kwargs)
 
 
 # Function run on quitting the script
@@ -99,7 +101,7 @@ except FileExistsError:
     qrint("ROV-Captures folder already exists")
 path += r"\DIVE{:.0f}".format(time())
 os.mkdir(path)
-qrint("Created folder for this session", "Captures will be saved to:", path, sep="\n")
+qrint("Created folder for this session. Captures will be saved to:\n" + path)
 
 # Define some colours
 white = (255, 255, 255)
@@ -123,8 +125,7 @@ recording = False  # "The camera is recording video"
 camon = True  # "The camera is to stay on for the next cycle"
 
 # Initialise stats
-starttime = time()
-vidname = "VIDEO"
+recordname = "VIDEO"
 recordstarttime = -1
 recordfinishtime = -1
 recordcount = 0
@@ -182,21 +183,21 @@ while True:
         elif e.type == KEYDOWN:
             # If enter is pressed, take a photo
             if e.key == K_RETURN:
-                photoname = path + r"\IMG{:.0f}.png".format(time())
-                qrint("Took photo #{}, saved to:\n" + photoname)
-                photocount += 1
+                photocount += 1  # So that photo indexing starts at 00001
+                photoname = path + r"\IMG{:05d}.png".format(photocount)
+                qrint("Took photo #{}, saved to:\n{}".format(photocount, photoname))
                 cv2.imwrite(photoname, frame)
                 phototime = time()
             # If r is pressed, start or stop recording
             if e.key == K_r:
                 if not recording:
-                    recordcount += 1
-                    vidname = path + r"\VID{:.0f}.avi".format(time())
-                    out = cv2.VideoWriter(vidname, fourcc, 20, (640, 480))
+                    recordcount += 1  # So that video indexing starts at 00001
+                    recordname = path + r"\VID{:05d}.avi".format(recordcount)
+                    out = cv2.VideoWriter(recordname, fourcc, 20, (640, 480))
                     recordstarttime = time()
-                    qrint("Recording #{} to:\n".format(recordcount) + vidname)
+                    qrint("Recording #{} to:\n{}".format(recordcount, recordname))
                 else:
-                    qrint("Recording #{} ended, saved to:\n".format(recordcount) + vidname)
+                    qrint("Recording #{} ended, saved to:\n{}".format(recordcount, recordname))
                     out.release()
                     totalrecordtime += recordfinishtime - recordstarttime
                 recording = not recording
