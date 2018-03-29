@@ -3,6 +3,8 @@
 import cv2
 import socket
 
+debug = True
+
 
 # Function run on quitting the script
 def onquit():
@@ -35,6 +37,8 @@ while True:
     if ret:
         # Send the frame
         graphicsconn.send(bytearray(frame.flatten()))
-        cv2.imshow("frame", frame)
+        if debug:
+            # Display it to the screen, for debugging
+            cv2.imshow("frame", frame)
         # Wait, so it works
         cv2.waitKey(1)
