@@ -30,10 +30,10 @@ def onquit():
 
 # Function for outputting seconds as hoursminutesseconds
 def HMS(val):
-    s = val % 60
-    m = (val - s) % 3600
-    h = (val - (m + s))
-    return "{:n}h{:n}m{:.2f}s".format(h / 3600, m / 60, s)
+    ss_ss = val % 60
+    mm = (val - ss_ss) % 3600
+    hh = (val - (mm + ss_ss))
+    return "{:n}h{:n}m{:.2f}s".format(hh / 3600, mm / 60, ss_ss)
 
 
 # Function used by the receiver thread to receive image data sent by the Pi
@@ -50,7 +50,7 @@ def receiving():
     else:
         while True:
             # Receive as many bytes as required to get a whole image
-            rawdata += s.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B))
+            rawdata += commsocket.recv(921600) # (921600 = 640px wide x 480px tall x 3 colours (R, G, and B))
             # If enough has been collected to possibly represent a whole image
             if len(rawdata) >= 921600:
                 # Remove one image's worth of data from the beginning of that received
@@ -73,14 +73,14 @@ if not debug:
     # The socket used for comms with teh Pi
     connected = False
     qrint("Connecting...")
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    commsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     while not connected:
         try:
-            s.connect(piaddr)
+            commsocket.connect(piaddr)
             connected = True
         except ConnectionRefusedError:
             pass
-    qrint("Connected to {}".format(s.getpeername()))
+    qrint("Connected to {}".format(commsocket.getpeername()))
 else:
     qrint("##DEBUG MODE##")
     cap = cv2.VideoCapture(0)  # 0 signifies the first available camera device
