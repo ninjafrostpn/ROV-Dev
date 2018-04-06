@@ -12,6 +12,18 @@ from time import time
 debug = True
 starttime = time()
 
+# Options for command 3-bit command code
+TYPE_OPTIONS = 0
+TYPE_MOTOR_1 = 1
+TYPE_MOTOR_2 = 2
+TYPE_MOTOR_3 = 3
+TYPE_LIGHTS = 4
+TYPE_CAM_X = 5
+TYPE_CAM_Y = 6
+
+
+roundconstrain = lambda val, lo, hi: round(min(max(val, lo), hi))
+
 
 # Debug-log printer
 def qrint(*args, **kwargs):
@@ -60,6 +72,66 @@ def receiving():
                 # Update the on-screen video feed with the data received
                 # (After translating it into an image from the bytes)
                 frame[:] = np.frombuffer(framedata, dtype=np.uint8).reshape(480, 640, 3)
+
+
+class CommandError(Exception):
+    pass
+
+
+# Function used to send commands for hardware manipulation by the Pi
+def sendcommand(commandtype, value):
+    if commandtype < 0 or commandtype > 7:
+        raise CommandError
+    # First three bits of a byte identify the item being commanded
+    # Last five bits of a byte give the value assigned to it
+    # E.g. 10011111 = Lights (100) Turn them all on (11111)
+    #      00100111 = Motor 1 (001) Set to about half speed forward (00111)
+    #      01001111 = Motor 2 (010) Set to full speed reverse (11111)
+    command = commandtype << 5  # Puts identification bits to front
+    command |= 31 & value       # Inserts value to be sent
+    commsocket.send(command)    # And sends it
+
+
+# Initialise output variables
+motors = [0, 0, 0]
+motorcommand = [TYPE_MOTOR_1, TYPE_MOTOR_2, TYPE_MOTOR_3]
+lights = [False, False, False, False, False]
+servos = [0, 0]
+
+
+# Function used to change motor speeds
+def setmotor(which, speed):
+    speed = roundconstrain(speed, -15, 15)
+    if motors[which] != speed:
+        motors[which] = speed
+        sendcommand(motorcommand[which], speed)
+
+
+# Function used to switch lights on and off
+def setlight(which, state):
+    # State is boolean representing "Light is on" (any value below or at 0 counts as False, else True)
+    state = state > 0
+    if lights[which] != state:
+        lights[which] = state
+        lightvalue = 0
+        for light in lights:
+            lightvalue <<= 1
+            lightvalue |= light
+        sendcommand(TYPE_LIGHTS, lightvalue)
+
+
+# Function used to set the rotation of the camera positioning servos
+def setcameraangle(x, y):
+    # x and y are input as values between -45 and 45 degrees, with a resolution of 3 degrees
+    x = roundconstrain(x/3, -15, 15)
+    y = roundconstrain(y/3, -15, 15)
+    if servos[0] != x:
+        servos[0] = x
+        sendcommand(TYPE_CAM_X, x)
+    if servos[1] != y:
+        servos[1] = y
+        sendcommand(TYPE_CAM_Y, y)
+
 
 # Initialise the video feed as a blank, black screen
 frame = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -124,7 +196,7 @@ smallfont = pygame.font.Font(None, 30)
 recording = False  # "The camera is recording video"
 camon = True  # "The camera is to stay on for the next cycle"
 
-# Initialise stats
+# Initialise capture variables
 recordname = "VIDEO"
 recordstarttime = -1
 recordfinishtime = -1
