@@ -12,7 +12,7 @@ from time import time
 debug = True
 starttime = time()
 
-# Options for command 3-bit command code
+# Options for command 3-bit command code (PLS NOTE: MUST BE THE SAME IN THE PI CODE)
 TYPE_OPTIONS = 0
 TYPE_MOTOR_1 = 1
 TYPE_MOTOR_2 = 2
@@ -20,6 +20,9 @@ TYPE_MOTOR_3 = 3
 TYPE_LIGHTS = 4
 TYPE_CAM_X = 5
 TYPE_CAM_Y = 6
+
+motorcommands = [TYPE_MOTOR_1, TYPE_MOTOR_2, TYPE_MOTOR_3]
+servocommands = [TYPE_CAM_X, TYPE_CAM_Y]
 
 
 roundconstrain = lambda val, lo, hi: round(min(max(val, lo), hi))
@@ -94,7 +97,6 @@ def sendcommand(commandtype, value):
 
 # Initialise output variables
 motors = [0, 0, 0]
-motorcommand = [TYPE_MOTOR_1, TYPE_MOTOR_2, TYPE_MOTOR_3]
 lights = [False, False, False, False, False]
 servos = [0, 0]
 
@@ -104,7 +106,7 @@ def setmotor(which, speed):
     speed = roundconstrain(speed, -15, 15)
     if motors[which] != speed:
         motors[which] = speed
-        sendcommand(motorcommand[which], speed)
+        sendcommand(motorcommands[which], speed)
 
 
 # Function used to switch lights on and off
