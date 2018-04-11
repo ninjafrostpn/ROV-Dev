@@ -36,6 +36,7 @@ def receiving():
             # Extract relevant portions of command
             commandtype = command >> 5
             value = command & 31
+            print commandtype
             if commandtype == TYPE_OPTIONS:
                 pass
             elif commandtype in motorcommands:
@@ -57,7 +58,9 @@ serversocket.listen(5)
 
 # Waits and accepts the first one to attempt communication
 commsocket, _ = serversocket.accept()
-receiver = threading.Thread(target=receiving, daemon=True)
+receiver = threading.Thread(target=receiving)
+receiver.daemon = True
+receiver.start()
 
 # Open Webcam
 cap = cv2.VideoCapture(0)  # 0 signifies the first available camera device
