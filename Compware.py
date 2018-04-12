@@ -9,7 +9,7 @@ import pygame
 from pygame.locals import *
 from time import time
 
-debug = True
+debug = False
 starttime = time()
 
 # Options for command 3-bit command code (PLS NOTE: MUST BE THE SAME IN THE PI CODE)
@@ -23,7 +23,6 @@ TYPE_CAM_Y = 6
 
 motorcommands = [TYPE_MOTOR_1, TYPE_MOTOR_2, TYPE_MOTOR_3]
 servocommands = [TYPE_CAM_X, TYPE_CAM_Y]
-
 
 roundconstrain = lambda val, lo, hi: round(min(max(val, lo), hi))
 
@@ -90,9 +89,9 @@ def sendcommand(commandtype, value):
     # E.g. 10011111 = Lights (100) Turn them all on (11111)
     #      00100111 = Motor 1 (001) Set to about half speed forward (00111)
     #      01001111 = Motor 2 (010) Set to full speed reverse (11111)
-    command = commandtype << 5  # Puts identification bits to front
-    command |= 31 & value       # Inserts value to be sent
-    commsocket.send(command)    # And sends it
+    command = commandtype << 5     # Puts identification bits to front
+    command |= 31 & value          # Inserts value to be sent
+    commsocket.send(chr(command))  # And sends it
 
 
 # Initialise output variables
